@@ -1,52 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LED Control</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
-
-        button {
-            font-size: 20px;
-            padding: 10px 20px;
-            margin: 10px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-        }
-
-        .on {
-            background-color: green;
-            color: white;
-        }
-
-        .off {
-            background-color: red;
-            color: white;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التحكم في الأردوينو</title>
 </head>
 <body>
-    <h1>LED Control</h1>
-    <button class="on" onclick="controlLED(1)">Turn On</button>
-    <button class="off" onclick="controlLED(0)">Turn Off</button>
+  <h1>التحكم في الأردوينو عبر Web Serial API</h1>
+  <button onclick="connectToArduino()">اتصال بالأردوينو</button>
+  <button onclick="sendCommand('1')">تشغيل</button>
+  <button onclick="sendCommand('0')">إيقاف</button>
+  <div id="status">الحالة: غير متصل</div>
 
-    <script>
-        async function controlLED(state) {
-            try {
-                const response = await fetch(`/control-led?state=${state}`);
-                const result = await response.text();
-                alert(result);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to communicate with the Arduino.');
-            }
-        }
-    </script>
+  <script>
+    let port;
+    let writer;
+
+    async function connectToArduino() {
+      try {
+        port = await navigator.serial.requestPort(); // طلب المنفذ التسلسلي
+        await port.open({ baudRate: 9600 }); // فتح المنفذ بإعدادات السرعة
+
+        const encoder = new TextEncoderStream();
+        writer = encoder.writable.getWriter();
+        encoder.readable.pipeTo(port.writable);
+
+        document.getElementById('status').textContent = 'الحالة: متصل';
+      } catch (error) {
+        console.error('خطأ أثناء الاتصال:', error);
+        document.getElementById('status').textContent = 'الحالة: خطأ في الاتصال';
+      }
+    }
+
+    async function sendCommand(command) {
+      if (writer) {
+        await writer.write(command + '\n'); // إرسال الأمر مع سطر جديد
+        console.log(`تم إرسال الأمر: ${command}`);
+      } else {
+        alert('يرجى الاتصال بالأردوينو أولاً.');
+      }
+    }
+  </script>
 </body>
 </html>
